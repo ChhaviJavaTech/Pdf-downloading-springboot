@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Visit</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+          crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="http://cdn.datatables.net/1.10.2/css/jquery.dataTables.min.css">
+    <script type="text/javascript" src="http://cdn.datatables.net/1.10.2/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.4/jspdf.debug.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body>
+<div class="container col-sm-12 border border-dark p-5 mt-4">
+    <h4 class="text-success" th:text="${sucmsg}"></h4>
+    <h2 class="text-primary mt-2 mb-4" align="center">Doctor's Pen</h2>
+
+    <div class="col-sm-6 mb-4">
+        <label>Patient Phone No<span class="text-danger">*</span></label>
+        <input name="mobNo" id="mobNo" type="text" class="form-control" required="required">
+        <button class="btn btn-success" onclick="getPatient()">Search</button>
+    </div>
+
+    <fieldset class="border rounded-3 p-3">
+        <legend class="float-none w-auto px-3">Applicant Details</legend>
+        <table id="ti" class="table table-striped">
+            <thead class="text-danger">
+            <tr>
+                <th>Patient Name</th>
+                <th>Phone No.</th>
+                <th>Gender</th>
+                <th>Date Of Birth</th>
+                <th>Patient History</th>
+            </tr>
+            </thead>
+            <tbody>
+            <!-- Use Thymeleaf iteration to populate the table rows -->
+            <tr th:each="patient : ${patients}">
+                <td th:text="${patient.patient_name}"></td>
+                <td th:text="${patient.phone_no}"></td>
+                <td th:text="${patient.gender}"></td>
+                <td th:text="${patient.dob}"></td>
+                <td>
+                    <i class="fa fa-file-pdf-o text-danger" onclick="generatePDF(${patient.patient_name})">History</i>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </fieldset>
+
+    <fieldset id="form" class="border rounded-3 p-3 mt-4" disabled="disabled">
+        <legend class="float-none w-auto px-3">Add Prescription Details</legend>
+        <form action="./save" class="row p-4" method="post">
+            <input hidden="" id="patID" name="patientId">
+            <div class="col-sm-4">
+                <label>Disease Name<span class="text-danger">*</span></label>
+                <select class="form-control" id="dis" name="disease_id" required="required">
+                    <option hidden="hidden" value="">-Select-</option>
+                    <!-- Use Thymeleaf iteration to populate the dropdown options -->
+                    <option th:each="disease : ${diseases}" th:value="${disease.disease_id}" th:text="${disease.disease_name}"></option>
+                </select>
+            </div>
+            <div class="col-sm-8">
+                <label>Prescription Details<span class="text-danger">*</span></label>
+                <textarea rows="" cols="" class="col-sm-8 form-control" name="prescription_details" required="required"></textarea>
+            </div>
+            <div class="col-sm-12" align="center">
+                <input type="submit" value="Save" class="btn btn-success">
+            </div>
+        </form>
+    </fieldset>
+</div>
+
+<script type="text/javascript">
+    function getPatient() {
+        var mobno = $("#mobNo").val();
+        $.ajax({
+            type: "GET",
+            
+            url: "./getPatientDetailes",
+            data: {mbn: mobno},
+            success: function (response) {
+                if (response == null || response == '') {
+                    alert("This mobile no does not exist. Please register first.");
+                } else {
+                    $("#ti tbody").html("");
+                    $("#patID").val(response[0].patient_id);
+                    $("#ti tbody").append(
+                        "<tr>" +
+                        "<td>" + response[0].patient_name + "</td>" +
+                        "<td>" + response[0].phone_no + "</td>" +
+                        "<td>" + response[0].gender + "</td>" +
+                        "<td>" + response[0].dob + "</td>" +
+                        "<td><i class='fa fa-file-pdf-o text-danger' onclick='generatePDF(" + response[0].patient_id + ")'>History</i></td>" +
+                        "</tr>"
+                    );
+                    $('#form').removeAttr("disabled");
+                }
+            }
+        });
+    }
+
+    function generatePDF(patientId) {
+        $.ajax({
+            type: "GET",
+            url: "./getPatientHistory",
+            data: {pid: patientId},
+            success: function (response) {
+                const linkSource = "data:application/pdf;base64," + response;
+                const downloadLink = document.createElement("a");
+                const fileName = "abc.pdf";
+                downloadLink.href = linkSource;
+                downloadLink.download = fileName;
+                downloadLink.click();
+            }
+        });
+    }
+</script>
+</body>
+</html>
